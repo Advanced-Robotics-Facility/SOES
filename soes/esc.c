@@ -283,13 +283,19 @@ uint16_t ESC_checkDC (void)
 uint8_t ESC_checkmbx (uint8_t state)
 {
    _ESCsm2 *SM;
+   DPRINT("%s ", __FUNCTION__);
    ESC_read (ESCREG_SM0, (void *) &ESCvar.SM[0], sizeof (ESCvar.SM[0]));
    ESC_read (ESCREG_SM1, (void *) &ESCvar.SM[1], sizeof (ESCvar.SM[1]));
    SM = (_ESCsm2 *) & ESCvar.SM[0];
    if ((etohs (SM->PSA) != ESC_MBX0_sma) || (etohs (SM->Length) != ESC_MBX0_sml)
        || (SM->Command != ESC_MBX0_smc) || (ESCvar.SM[0].ECsm == 0))
    {
-      ESCvar.SMtestresult = SMRESULT_ERRSM0;
+	  DPRINT("FAIL: 0x%04X 0x%04X|%d %d|0x%02X 0x%02X|%d == 0\n\r",
+			  etohs (SM->PSA), 		ESC_MBX0_sma,
+			  etohs (SM->Length),	ESC_MBX0_sml,
+			  SM->Command,			ESC_MBX0_smc,
+			  ESCvar.SM[0].ECsm);
+	  ESCvar.SMtestresult = SMRESULT_ERRSM0;
       ESC_SMdisable (0);
       ESC_SMdisable (1);
       return (uint8_t) (ESCinit | ESCerror);      //fail state change
@@ -303,6 +309,7 @@ uint8_t ESC_checkmbx (uint8_t state)
       ESC_SMdisable (1);
       return ESCinit | ESCerror;        //fail state change
    }
+   DPRINT("OK\n");
    return state;
 }
 /** Try to start mailboxes for current ALControl state request by enabling SyncManager 0 and 1.
@@ -525,6 +532,26 @@ void MBX_error (uint16_t error)
    }
 }
 
+/** Get mailbox type
+ */
+void ESC_mbxtype(uint8_t * mbxtype)
+{
+    _MBXh *mbh;
+
+    if ( ! ESCvar.MBXrun ) {
+        return;
+    }
+
+    if (!ESCvar.xoe && (MBXcontrol[0].state == MBXstate_inclaim))
+    {
+      mbh = (_MBXh *) &MBX[0];
+      *mbxtype = (uint8_t)mbh->mbxtype;
+    }
+
+    return;
+}
+
+
 /** Mailbox routine for implementing the low-level part of the mailbox protocol
  * used by Application Layers running on-top of mailboxes. It takes care of sending
  * a mailbox, re-sending a mailbox, reading a mailbox and handles a mailbox full event.
@@ -688,6 +715,11 @@ uint8_t ESC_checkSM23 (uint8_t state)
    if ((etohs (SM->PSA) != ESC_SM2_sma) || (etohs (SM->Length) != ESCvar.ESC_SM2_sml)
        || (SM->Command != ESC_SM2_smc) || !(SM->ActESC & ESC_SM2_act))
    {
+      DPRINT("%s: 0x%04X 0x%04X|%d %d|0x%02X 0x%02X|%d %d\n\r", __FUNCTION__,
+    		  etohs (SM->PSA), 		ESC_SM2_sma,
+			  etohs (SM->Length),	ESCvar.ESC_SM2_sml,
+			  SM->Command,			ESC_SM2_smc,
+			  SM->ActESC, 			ESC_SM2_act);
       ESCvar.SMtestresult = SMRESULT_ERRSM2;
       /* fail state change */
       return (ESCpreop | ESCerror);
@@ -703,7 +735,12 @@ uint8_t ESC_checkSM23 (uint8_t state)
    if ((etohs (SM->PSA) != ESC_SM3_sma) || (etohs (SM->Length) != ESCvar.ESC_SM3_sml)
        || (SM->Command != ESC_SM3_smc) || !(SM->ActESC & ESC_SM3_act))
    {
-      ESCvar.SMtestresult = SMRESULT_ERRSM3;
+	  DPRINT("%s: 0x%04X 0x%04X|%d %d|0x%02X 0x%02X|%d %d\n\r", __FUNCTION__,
+			  etohs (SM->PSA), 		ESC_SM3_sma,
+			  etohs (SM->Length),	ESCvar.ESC_SM3_sml,
+			  SM->Command,			ESC_SM3_smc,
+			  SM->ActESC, 			ESC_SM3_act);
+	  ESCvar.SMtestresult = SMRESULT_ERRSM3;
       /* fail state change */
       return (ESCpreop | ESCerror);
    }
@@ -951,7 +988,8 @@ void ESC_state (void)
    /* Error state not acked, leave original */
    if ((an & ESCerror) && ((ac & ESCerror) == 0))
    {
-      return;
+      DPRINT("%s: error not acked", __FUNCTION__);
+	  return;
    }
 
    /* Mask high bits ALcommand, low bits ALstatus */

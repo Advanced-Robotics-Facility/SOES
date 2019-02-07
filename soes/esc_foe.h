@@ -33,6 +33,12 @@ struct foe_writefile_cfg
    uint32_t       filepass;
    /** Pointer to application foe write function */
    uint32_t       (*write_function) (foe_writefile_cfg_t * self, uint8_t * data, size_t length);
+   /** Pointer to application foe read function */
+   uint32_t       (*read_function) (foe_writefile_cfg_t * self, uint8_t * data, size_t length);
+   /* */
+   uint32_t       (*on_foe_open) (uint8_t op);
+   /* */
+   uint32_t       (*on_foe_close) ( void );
 };
 
 typedef struct foe_cfg

@@ -662,6 +662,7 @@ uint8_t ESC_WDstatus (void);
 uint8_t ESC_claimbuffer (void);
 uint8_t ESC_startmbx (uint8_t state);
 void ESC_stopmbx (void);
+void ESC_mbxtype(uint8_t * mbxtype);
 void MBX_error (uint16_t error);
 uint8_t ESC_mbxprocess (void);
 void ESC_xoeprocess (void);
