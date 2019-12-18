@@ -12,7 +12,7 @@
 #define __esc__
 
 #include <cc.h>
-#include <esc_coe.h>
+#include "esc_coe.h"
 #include "options.h"
 
 #define ESCREG_ADDRESS              0x0010

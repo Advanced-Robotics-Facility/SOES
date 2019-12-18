@@ -407,7 +407,7 @@ void FOE_ack ()
       return;
    }
    res = FOE_send_data_packet ();
-   if (res < (int) FOE_DATA_SIZE)
+   if (res < (int) ESC_FOE_DATA_SIZE)
    {
       FOEvar.foestate = FOE_WAIT_FOR_FINAL_ACK;
    }

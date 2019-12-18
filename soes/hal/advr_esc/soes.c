@@ -3,69 +3,117 @@
 #include <soes/esc_foe.h>
 #include <soes/hal/advr_esc/soes.h>
 
-#include <config.h>
+#include <ecat_options.h>
 #include <soes_hook.h>
 
+#define IS_RXPDO(index) ((index) >= 0x1600 && (index) < 0x1800)
+#define IS_TXPDO(index) ((index) >= 0x1A00 && (index) < 0x1C00)
 
-#define DEFAULTTXPDOMAP    0x1a00
-#define DEFAULTRXPDOMAP    0x1600
-#define DEFAULTTXPDOITEMS  1
-#define DEFAULTRXPDOITEMS  1
+extern rx_pdo_t    	rx_pdo;
+extern tx_pdo_t    	tx_pdo;
 
 _ESCvar  	ESCvar;
 uint8_t     MBX[MBXBUFFERS * MAX(MBXSIZE,MBXSIZEBOOT)];
 _MBXcontrol MBXcontrol[MBXBUFFERS];
+_SMmap      SMmap2[MAX_MAPPINGS_SM2];
+_SMmap      SMmap3[MAX_MAPPINGS_SM3];
 
-uint8_t		MBXrun = 0;
-uint16_t    SM2_sml,SM3_sml;
-_App        App;
-
-uint16_t    txpdomap = DEFAULTTXPDOMAP;
-uint16_t    rxpdomap = DEFAULTRXPDOMAP;
-uint8_t     txpdoitems = DEFAULTTXPDOITEMS;
-uint8_t     rxpdoitems = DEFAULTTXPDOITEMS;
-
-
-/* Setup config hooks */
-static esc_cfg_t config =
+/** Function to pre-qualify the incoming SDO download.
+ *
+ * @param[in] index      = index of SDO download request to check
+ * @param[in] sub-index  = sub-index of SDO download request to check
+ * @return SDO abort code, or 0 on success
+ */
+uint32_t ESC_pre_objecthandler (uint16_t index,
+      uint8_t subindex,
+      void * data,
+      size_t size,
+      uint16_t flags)
 {
-    .user_arg = "/spi0/et1100",
-    .use_interrupt = 1,
-    .watchdog_cnt = 0,
-    .mbxsize = MBXSIZE,
-    .mbxsizeboot = MBXSIZEBOOT,
-    .mbxbuffers = MBXBUFFERS,
-    .mb[0] = {MBX0_sma, MBX0_sml, MBX0_sme, MBX0_smc, 0},
-    .mb[1] = {MBX1_sma, MBX1_sml, MBX1_sme, MBX1_smc, 0},
-    .mb_boot[0] = {MBX0_sma_b, MBX0_sml_b, MBX0_sme_b, MBX0_smc_b, 0},
-    .mb_boot[1] = {MBX1_sma_b, MBX1_sml_b, MBX1_sme_b, MBX1_smc_b, 0},
-    .pdosm[0] = {SM2_sma, 0, 0, SM2_smc, SM2_act},
-    .pdosm[1] = {SM3_sma, 0, 0, SM3_smc, SM3_act},
-    .pre_state_change_hook = pre_state_change_hook,
-    .post_state_change_hook = post_state_change_hook,
-    .application_hook = NULL,
-    .safeoutput_override = NULL,
-    .pre_object_download_hook = ESC_pre_objecthandler,
-    .post_object_download_hook = ESC_objecthandler,
-    .rxpdo_override = NULL,
-    .txpdo_override = NULL,
-    .esc_hw_interrupt_enable = NULL,
-    .esc_hw_interrupt_disable = NULL,
-    .esc_hw_eep_handler = NULL
-};
+   uint32_t abort = 0;
 
+   if (IS_RXPDO (index) ||
+       IS_TXPDO (index) ||
+       index == RX_PDO_OBJIDX ||
+       index == TX_PDO_OBJIDX)
+   {
+      if (subindex > 0 && COE_maxSub (index) != 0)
+      {
+         abort = ABORT_SUBINDEX0_NOT_ZERO;
+      }
+   }
+
+   if (ESCvar.pre_object_download_hook)
+   {
+      abort = (ESCvar.pre_object_download_hook) (index,
+            subindex,
+            data,
+            size,
+            flags);
+   }
+
+   return abort;
+}
+
+/** Hook called from the slave stack SDO Download handler to act on
+ * user specified Index and Sub-index.
+ *
+ * @param[in] index      = index of SDO download request to handle
+ * @param[in] sub-index  = sub-index of SDO download request to handle
+ */
+void ESC_objecthandler (uint16_t index, uint8_t subindex, uint16_t flags)
+{
+   if (ESCvar.post_object_download_hook != NULL)
+   {
+      (ESCvar.post_object_download_hook)(index, subindex, flags);
+   }
+}
+
+/** Write local process data to Sync Manager 3, Master Inputs.
+ */
+void TXPDO_update (void)
+{
+   if(ESCvar.txpdo_override != NULL)
+   {
+      (ESCvar.txpdo_override)();
+   }
+   else
+   {
+      if (MAX_MAPPINGS_SM3 > 0)
+      {
+         COE_pdoPack ((uint8_t*)&tx_pdo, ESCvar.sm3mappings, SMmap3);
+      }
+      ESC_write (ESC_SM3_sma, (void*)&tx_pdo, ESCvar.ESC_SM3_sml);
+   }
+}
+
+/** Read Sync Manager 2 to local process data, Master Outputs.
+ */
+void RXPDO_update (void)
+{
+   if(ESCvar.rxpdo_override != NULL)
+   {
+      (ESCvar.rxpdo_override)();
+   }
+   else
+   {
+      ESC_read (ESC_SM2_sma, (void*)&rx_pdo, ESCvar.ESC_SM2_sml);
+      if (MAX_MAPPINGS_SM2 > 0)
+      {
+         COE_pdoUnpack ((uint8_t*)&rx_pdo, ESCvar.sm2mappings, SMmap2);
+      }
+   }
+}
 
 /** Initializing the stack software
  */
-void soes_init (void)
+void soes_init (esc_cfg_t * config)
 {
-    DPRINT ("SOES (Simple Open EtherCAT Slave)\n");
-
-    ESCvar.TXPDOsize = ESCvar.ESC_SM3_sml = sizeOfPDO(TX_PDO_OBJIDX);
-    ESCvar.RXPDOsize = ESCvar.ESC_SM2_sml = sizeOfPDO(RX_PDO_OBJIDX);
-
-    ESC_config (&config);
-    ESC_init (&config);
+	DPRINT ("Slave stack init started\n");
+    /* Call stack configuration */
+    ESC_config (config);
+    /* Call HW init */
+    ESC_init (config);
 
     /*  wait until ESC is started up */
     while ((ESCvar.DLstatus & 0x0001) == 0)
@@ -75,10 +123,17 @@ void soes_init (void)
         ESCvar.DLstatus = etohs (ESCvar.DLstatus);
     }
 
+#if USE_FOE
     /* Pre FoE to set up Application information */
     bootstrap_foe_init ();
     /* Init FoE */
     FOE_init();
+#endif
+
+#if USE_EOE
+   /* Init EoE */
+   EOE_init();
+#endif
 
     /* reset ESC to init state */
     ESC_ALstatus (ESCinit);
@@ -94,18 +149,9 @@ void soes_init (void)
  */
 void soes_loop() {
 
-    uint8_t mbxtype = 0;
-
-    /* On init restore PDO mappings to default size */
-    if ( (ESCvar.ALstatus & 0x0f) == ESCinit ) {
-        txpdomap = DEFAULTTXPDOMAP;
-        rxpdomap = DEFAULTRXPDOMAP;
-        txpdoitems = DEFAULTTXPDOITEMS;
-        rxpdoitems = DEFAULTTXPDOITEMS;
-    }
-
-    ESC_read (ESCREG_DLSTATUS, (void *) &ESCvar.DLstatus, sizeof (ESCvar.DLstatus));
-    ESCvar.DLstatus = etohs (ESCvar.DLstatus);
+    /* Read local time from ESC*/
+    ESC_read (ESCREG_LOCALTIME, (void *) &ESCvar.Time, sizeof (ESCvar.Time));
+    ESCvar.Time = etohl (ESCvar.Time);
     /* Read DC cyclic activation reg */
     //ESC_read (ESCREG_DC_ACTIVATION, (void *) &ESCvar.DC_activation, sizeof (ESCvar.DC_activation));
     //ESCvar.DC_activation = etohl (ESCvar.DC_activation);
@@ -113,24 +159,28 @@ void soes_loop() {
     /* Check the state machine */
     ESC_state();
     /* Check the SM activation event */
-    //ESC_sm_act_event();
+    ESC_sm_act_event();
 
-    /* we're running normal execution
-     *  - MailBox
-     *  - CoE
-     *  - FoE
-     */
-    if ( ESC_mbxprocess() ) {
+    /* Check mailboxes */
+    if (ESC_mbxprocess())
+    {
+       ESC_coeprocess();
+ #if USE_FOE
+       ESC_foeprocess();
+ #endif
+ #if USE_EOE
+       ESC_eoeprocess();
+ #endif
+       ESC_xoeprocess();
+    }
+ #if USE_EOE
+    ESC_eoeprocess_tx();
+ #endif
 
-        // set ESCvar.xoe looking at mailbox header
-        ESC_mbxtype(&mbxtype);
-
-        if (mbxtype == MBXCOE){
-            ESC_coeprocess();
-        } else if (mbxtype == MBXFOE){
-            ESC_foeprocess();
-        }
-        ESC_xoeprocess();
+    /* Call emulated eeprom handler if set */
+    if (ESCvar.esc_hw_eep_handler != NULL)
+    {
+       (ESCvar.esc_hw_eep_handler)();
     }
 
 }
