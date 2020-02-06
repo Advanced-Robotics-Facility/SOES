@@ -92,7 +92,7 @@ inline void ESC_read_pram (uint16_t address, void *buf, uint16_t len)
 	uint32_t value;
 	uint8_t * temp_buf = buf;
 	uint16_t byte_offset = 0;
-	uint8_t fifo_cnt, first_byte_position, temp_len, data[4];
+	uint8_t fifo_cnt, first_byte_position, temp_len;
 
 	value = ESC_PRAM_CMD_ABORT;
 	//lan9252_write_32(ESC_PRAM_RD_CMD_REG, value);
@@ -159,7 +159,7 @@ inline void ESC_write_pram (uint16_t address, void *buf, uint16_t len)
 	uint32_t value;
 	uint8_t * temp_buf = buf;
 	uint16_t byte_offset = 0;
-	uint8_t fifo_cnt, first_byte_position, temp_len, data[3];
+	uint8_t fifo_cnt, first_byte_position, temp_len;
 
 	value = ESC_PRAM_CMD_ABORT;
 	//lan9252_write_32(ESC_PRAM_WR_CMD_REG, value);
