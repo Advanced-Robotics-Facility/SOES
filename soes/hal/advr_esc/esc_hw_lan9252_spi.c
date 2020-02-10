@@ -34,7 +34,7 @@ static inline void read(uint8_t * data, size_t size) {
 
 
 /* lan9252 single write */
-static inline void lan9252_write_32 (uint16_t address, uint32_t val)
+inline void lan9252_write_32 (uint16_t address, uint32_t val)
 {
     uint8_t data[7];
 
@@ -55,7 +55,7 @@ static inline void lan9252_write_32 (uint16_t address, uint32_t val)
 }
 
 /* lan9252 single read */
-static inline uint32_t lan9252_read_32 (uint32_t address)
+inline uint32_t lan9252_read_32 (uint32_t address)
 {
 	uint8_t data[4];
 	//uint8_t data[3];
@@ -83,7 +83,7 @@ static inline uint32_t lan9252_read_32 (uint32_t address)
 
 
 /* ESC read CSR function */
-static inline void ESC_read_csr (uint16_t address, void *buf, uint16_t len)
+inline void ESC_read_csr (uint16_t address, void *buf, uint16_t len)
 {
    uint32_t value;
 
@@ -99,7 +99,7 @@ static inline void ESC_read_csr (uint16_t address, void *buf, uint16_t len)
 }
 
 /* ESC write CSR function */
-static inline void ESC_write_csr (uint16_t address, void *buf, uint16_t len)
+inline void ESC_write_csr (uint16_t address, void *buf, uint16_t len)
 {
    uint32_t value;
 
@@ -114,7 +114,7 @@ static inline void ESC_write_csr (uint16_t address, void *buf, uint16_t len)
 }
 
 /* ESC read process data ram function */
-static inline void ESC_read_pram (uint16_t address, void *buf, uint16_t len)
+inline void ESC_read_pram (uint16_t address, void *buf, uint16_t len)
 {
    uint32_t value;
    uint8_t * temp_buf = buf;
@@ -180,7 +180,7 @@ static inline void ESC_read_pram (uint16_t address, void *buf, uint16_t len)
 }
 
 /* ESC write process data ram function */
-static inline void ESC_write_pram (uint16_t address, void *buf, uint16_t len)
+inline void ESC_write_pram (uint16_t address, void *buf, uint16_t len)
 {
    uint32_t value;
    uint8_t * temp_buf = buf;
