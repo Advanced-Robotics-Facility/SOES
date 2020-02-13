@@ -95,28 +95,23 @@ inline void ESC_read_pram (uint16_t address, void *buf, uint16_t len)
 	uint8_t fifo_cnt, first_byte_position, temp_len;
 
 	value = ESC_PRAM_CMD_ABORT;
-	//lan9252_write_32(ESC_PRAM_RD_CMD_REG, value);
 	write_hbi8 (HBI_INDEXED_INDEX1_REG, ESC_PRAM_RD_CMD_REG);
 	write_hbi8 (HBI_INDEXED_DATA1_REG, value);
 
 	do {
-		//value = lan9252_read_32(ESC_PRAM_RD_CMD_REG);
 		value = read_hbi8 (HBI_INDEXED_DATA1_REG);
 	} while(value & (uint32_t)ESC_PRAM_CMD_BUSY);
 
 	value = ESC_PRAM_SIZE(len) | ESC_PRAM_ADDR(address);
-	//lan9252_write_32(ESC_PRAM_RD_ADDR_LEN_REG, value);
 	write_hbi8 (HBI_INDEXED_INDEX2_REG, ESC_PRAM_RD_ADDR_LEN_REG);
 	write_hbi8 (HBI_INDEXED_DATA2_REG, value);
 
 	value = read_hbi8 (HBI_INDEXED_DATA2_REG);
 
 	value = (uint32_t)ESC_PRAM_CMD_BUSY;
-	//lan9252_write_32(ESC_PRAM_RD_CMD_REG, value);
 	write_hbi8 (HBI_INDEXED_DATA1_REG, value);
 
 	do {
-		//value = lan9252_read_32(ESC_PRAM_RD_CMD_REG);
 		value = read_hbi8 (HBI_INDEXED_DATA1_REG);
 	} while((value & ESC_PRAM_CMD_AVAIL) == 0);
 
@@ -124,13 +119,11 @@ inline void ESC_read_pram (uint16_t address, void *buf, uint16_t len)
 	fifo_cnt = ESC_PRAM_CMD_CNT(value);
 
 	/* Read first value from FIFO */
-	//value = lan9252_read_32(HBI_INDEXED_PRAM_READ_WRITE_FIFO);
 	value = read_hbi8 (HBI_INDEXED_PRAM_READ_WRITE_FIFO);
 	fifo_cnt--;
 
 	/* Find out first byte position and adjust the copy from that
-	* according to LAN9252 datasheet and MicroChip SDK code
-	*/
+	* according to LAN9252 datasheet and MicroChip SDK code */
 	first_byte_position = (address & 0x03);
 	temp_len = ((4 - first_byte_position) > len) ? len : (4 - first_byte_position);
 
@@ -143,7 +136,6 @@ inline void ESC_read_pram (uint16_t address, void *buf, uint16_t len)
 	{
 		temp_len = (len > 4) ? 4: len;
 		/* Always read 4 byte */
-		//read ((temp_buf + byte_offset), sizeof(uint32_t));
 		value = read_hbi8 (HBI_INDEXED_PRAM_READ_WRITE_FIFO);
 		memcpy((temp_buf + byte_offset), (uint8_t *)&value, temp_len);
 
@@ -162,17 +154,14 @@ inline void ESC_write_pram (uint16_t address, void *buf, uint16_t len)
 	uint8_t fifo_cnt, first_byte_position, temp_len;
 
 	value = ESC_PRAM_CMD_ABORT;
-	//lan9252_write_32(ESC_PRAM_WR_CMD_REG, value);
 	write_hbi8 (HBI_INDEXED_INDEX1_REG, ESC_PRAM_WR_CMD_REG);
 	write_hbi8 (HBI_INDEXED_DATA1_REG, value);
 
 	do {
-		//value = lan9252_read_32(ESC_PRAM_WR_CMD_REG);
 		value = read_hbi8 (HBI_INDEXED_DATA1_REG);
 	} while(value & (uint32_t)ESC_PRAM_CMD_BUSY);
 
 	value = ESC_PRAM_SIZE(len) | ESC_PRAM_ADDR(address);
-	//lan9252_write_32(ESC_PRAM_WR_ADDR_LEN_REG, value);
 	write_hbi8 (HBI_INDEXED_INDEX2_REG, ESC_PRAM_WR_ADDR_LEN_REG);
 	write_hbi8 (HBI_INDEXED_DATA2_REG, value);
 
@@ -181,7 +170,6 @@ inline void ESC_write_pram (uint16_t address, void *buf, uint16_t len)
 	write_hbi8 (HBI_INDEXED_DATA1_REG, value);
 
 	do {
-		//value = lan9252_read_32(ESC_PRAM_WR_CMD_REG);
 		value = read_hbi8 (HBI_INDEXED_DATA1_REG);
 	} while((value & ESC_PRAM_CMD_AVAIL) == 0);
 
@@ -197,7 +185,6 @@ inline void ESC_write_pram (uint16_t address, void *buf, uint16_t len)
 	memcpy(((uint8_t *)&value + first_byte_position), temp_buf, temp_len);
 
 	/* Write first value from FIFO */
-	//lan9252_write_32(HBI_INDEXED_PRAM_READ_WRITE_FIFO, value);
 	write_hbi8 (HBI_INDEXED_PRAM_READ_WRITE_FIFO, value);
 
 	len -= temp_len;
@@ -211,7 +198,6 @@ inline void ESC_write_pram (uint16_t address, void *buf, uint16_t len)
 		value = 0;
 		memcpy((uint8_t *)&value, (temp_buf + byte_offset), temp_len);
 		/* Always write 4 byte */
-		//write ((void *)&value, sizeof(value));
 		write_hbi8 (HBI_INDEXED_PRAM_READ_WRITE_FIFO, value);
 
 		fifo_cnt--;

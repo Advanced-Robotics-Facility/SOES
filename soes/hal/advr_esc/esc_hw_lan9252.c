@@ -17,6 +17,25 @@
 
 #include <string.h>
 
+static inline uint16_t check_addr_size(uint16_t address, uint16_t len) {
+
+	/* We write maximum 4 bytes at the time */
+	uint16_t size = (len > 4) ? 4 : len;
+	/* Make size aligned to address according to LAN9252 datasheet
+	* Table 12-14 EtherCAT CSR Address VS size and MicroChip SDK code */
+	/* If we got an odd address size is 1 , 01b 11b is captured */
+	if(address & BIT(0)) {
+		size = 1;
+	} /* If address 1xb and size != 1 and 3 , allow size 2 else size 1 */
+	else if (address & BIT(1)) {
+		size = (size & BIT(0)) ? 1 : 2;
+	} /* size 3 not valid */
+	else if (size == 3) {
+		size = 1;
+	}
+	return size;
+}
+
 /** ESC read function used by the Slave stack.
  *
  * @param[in]   address     = address of ESC register to read
@@ -26,37 +45,14 @@
 #pragma CODE_SECTION(ESC_read,ramFuncSection);
 void ESC_read (uint16_t address, void *buf, uint16_t len)
 {
+    uint8_t *temp_buf = (uint8_t *)buf;
     /* Select Read function depending on address, process data ram or not */
     if (address >= 0x1000) {
         ESC_read_pram(address, buf, len);        
     } else {
-        uint16_t size;
-        uint8_t *temp_buf = (uint8_t *)buf;
-
         while(len > 0) {
-            /* We write maximum 4 bytes at the time */
-            size = (len > 4) ? 4 : len;
-            /* Make size aligned to address according to LAN9252 datasheet
-            * Table 12-14 EtherCAT CSR Address VS size and MicroChip SDK code
-            */
-            /* If we got an odd address size is 1 , 01b 11b is captured */
-            if(address & BIT(0))
-            {
-            size = 1;
-            }
-            /* If address 1xb and size != 1 and 3 , allow size 2 else size 1 */
-            else if (address & BIT(1))
-            {
-            size = (size & BIT(0)) ? 1 : 2;
-            }
-            /* size 3 not valid */
-            else if (size == 3)
-            {
-            size = 1;
-            }
-            /* else size is kept AS IS */
+        	uint16_t size = check_addr_size(address, len);
             ESC_read_csr(address, temp_buf, size);
-
             /* next address */
             len -= size;
             temp_buf += size;
@@ -78,51 +74,24 @@ void ESC_read (uint16_t address, void *buf, uint16_t len)
 #pragma CODE_SECTION(ESC_write,ramFuncSection);
 void ESC_write (uint16_t address, void *buf, uint16_t len)
 {
-   /* Select Write function depending on address, process data ram or not */
-   if (address >= 0x1000)
-   {
-      ESC_write_pram(address, buf, len);
-   }
-   else
-   {
-      uint16_t size;
-      uint8_t *temp_buf = (uint8_t *)buf;
-
-      while(len > 0)
-      {
-         /* We write maximum 4 bytes at the time */
-         size = (len > 4) ? 4 : len;
-         /* Make size aligned to address according to LAN9252 datasheet
-          * Table 12-14 EtherCAT CSR Address VS size  and MicroChip SDK code
-          */
-         /* If we got an odd address size is 1 , 01b 11b is captured */
-         if(address & BIT(0))
-         {
-            size = 1;
-         }
-         /* If address 1xb and size != 1 and 3 , allow size 2 else size 1 */
-         else if (address & BIT(1))
-         {
-            size = (size & BIT(0)) ? 1 : 2;
-         }
-         /* size 3 not valid */
-         else if (size == 3)
-         {
-            size = 1;
-         }
-         /* else size is kept AS IS */
-         ESC_write_csr(address, temp_buf, size);
-
-         /* next address */
-         len -= size;
-         temp_buf += size;
-         address += size;
-      }
-   }
-
-   /* To mimic the ET1x00 always providing AlEvent on every read or write */
-   ESC_read_csr(ESCREG_ALEVENT,(void *)&ESCvar.ALevent,sizeof(ESCvar.ALevent));
-   ESCvar.ALevent = etohs (ESCvar.ALevent);
+	uint8_t *temp_buf = (uint8_t *)buf;
+	/* Select Write function depending on address, process data ram or not */
+	if (address >= 0x1000) {
+		ESC_write_pram(address, buf, len);
+	} else {
+		while(len > 0)
+		{
+			uint16_t size = check_addr_size(address, len);
+			ESC_write_csr(address, temp_buf, size);
+			/* next address */
+			len -= size;
+			temp_buf += size;
+			address += size;
+		}
+	}
+	/* To mimic the ET1x00 always providing AlEvent on every read or write */
+	ESC_read_csr(ESCREG_ALEVENT,(void *)&ESCvar.ALevent,sizeof(ESCvar.ALevent));
+	ESCvar.ALevent = etohs (ESCvar.ALevent);
 }
 
 /* Un-used due to evb-lan9252-digio not havning any possability to
@@ -146,10 +115,10 @@ void ESC_init (const esc_cfg_t * config)
 	// select which events will be sent to PDI irq
 	// set bit 2 : state of DC sync0
 	do {
-	   value = 0x4;
-	   ESC_write (ESCREG_ALEVENTMASK, &value, sizeof(value));
-	   value = 0;
-	   ESC_read (ESCREG_ALEVENTMASK, &value, sizeof(value));
+		value = 0x4;
+		ESC_write (ESCREG_ALEVENTMASK, &value, sizeof(value));
+		value = 0;
+		ESC_read (ESCREG_ALEVENTMASK, &value, sizeof(value));
 	} while ( value != 0x4);
 
 	//IRQ enable,IRQ polarity, IRQ buffer type in Interrupt Configuration register.
