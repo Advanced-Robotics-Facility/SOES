@@ -14,6 +14,12 @@
 #include "esc_foe.h"
 #include <string.h>
 
+#ifdef ESC_DEBUG
+#ifndef FOE_DEBUG
+    #undef DPRINT
+    #define DPRINT(...)
+#endif
+#endif
 
  /** \file
  * \brief
