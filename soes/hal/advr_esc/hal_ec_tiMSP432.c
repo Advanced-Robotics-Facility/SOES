@@ -17,7 +17,7 @@
  */
 #include "hal_ec.h"
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
-#include <pins.h>
+#include "pins.h"
 
 inline void cs_up(void) { MAP_GPIO_setOutputHighOnPin(PORT_ECAT_CS, PIN_ECAT_CS); }
 inline void cs_dn(void) { MAP_GPIO_setOutputLowOnPin (PORT_ECAT_CS, PIN_ECAT_CS); }
