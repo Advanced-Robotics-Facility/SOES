@@ -9,14 +9,26 @@
 #define IS_RXPDO(index) ((index) >= 0x1600 && (index) < 0x1800)
 #define IS_TXPDO(index) ((index) >= 0x1A00 && (index) < 0x1C00)
 
-extern rx_pdo_t    	rx_pdo;
-extern tx_pdo_t    	tx_pdo;
-
 _ESCvar  	ESCvar;
 uint8_t     MBX[MBXBUFFERS * MAX(MBXSIZE,MBXSIZEBOOT)];
 _MBXcontrol MBXcontrol[MBXBUFFERS];
 _SMmap      SMmap2[MAX_MAPPINGS_SM2];
 _SMmap      SMmap3[MAX_MAPPINGS_SM3];
+
+
+#if MAX_MAPPINGS_SM2 > 0
+static uint8_t rxpdo[MAX_RXPDO_SIZE] __attribute__((aligned (8)));
+#else
+extern uint8_t * rxpdo;
+//extern rx_pdo_t  rx_pdo;
+#endif
+
+#if MAX_MAPPINGS_SM3 > 0
+static uint8_t txpdo[MAX_TXPDO_SIZE] __attribute__((aligned (8)));
+#else
+extern uint8_t * txpdo;
+//extern tx_pdo_t  tx_pdo;
+#endif
 
 /** Function to pre-qualify the incoming SDO download.
  *
@@ -81,9 +93,9 @@ void TXPDO_update (void)
    {
       if (MAX_MAPPINGS_SM3 > 0)
       {
-         COE_pdoPack ((uint8_t*)&tx_pdo, ESCvar.sm3mappings, SMmap3);
+         COE_pdoPack (txpdo, ESCvar.sm3mappings, SMmap3);
       }
-      ESC_write (ESC_SM3_sma, (void*)&tx_pdo, ESCvar.ESC_SM3_sml);
+      ESC_write (ESC_SM3_sma, txpdo, ESCvar.ESC_SM3_sml);
    }
 }
 
@@ -97,10 +109,10 @@ void RXPDO_update (void)
    }
    else
    {
-      ESC_read (ESC_SM2_sma, (void*)&rx_pdo, ESCvar.ESC_SM2_sml);
+      ESC_read (ESC_SM2_sma, rxpdo, ESCvar.ESC_SM2_sml);
       if (MAX_MAPPINGS_SM2 > 0)
       {
-         COE_pdoUnpack ((uint8_t*)&rx_pdo, ESCvar.sm2mappings, SMmap2);
+         COE_pdoUnpack (rxpdo, ESCvar.sm2mappings, SMmap2);
       }
    }
 }
