@@ -20,7 +20,14 @@ extern "C"
 #else
    #include <machine/endian.h>   
 #endif
-#include <dprint.h>
+
+//#include <dprint.h>
+#ifdef ESC_DEBUG
+    extern int printf(const char *pcString, ...);
+    #define DPRINT(...) printf ("esc_dbg: "__VA_ARGS__) /* TODO */
+#else
+    #define DPRINT(...)
+#endif  /* DEBUG */
 
 #ifndef MIN
 #define MIN(a,b) (((a)<(b))?(a):(b))
