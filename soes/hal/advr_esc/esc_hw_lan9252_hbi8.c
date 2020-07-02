@@ -11,12 +11,8 @@
  * registers and memory.
  */
 
-#include "hw_lan9252.h"
-
 #include <soes/esc.h>
-
-#include <string.h>
-
+#include "hw_lan9252.h"
 
 #define LAN9252_BASE 0xC0000000
 
@@ -42,20 +38,20 @@ static inline uint32_t read_hbi8 (uint16_t addr) {
 	return data;
 }
 
-inline uint32_t lan9252_read_32 (uint32_t address)
+uint32_t lan9252_read_32 (uint32_t address)
 {
 	write_hbi8 (HBI_INDEXED_INDEX0_REG, address);
 	return read_hbi8 (HBI_INDEXED_DATA0_REG);
 }
 
-inline void lan9252_write_32 (uint16_t address, uint32_t val)
+void lan9252_write_32 (uint16_t address, uint32_t val)
 {
 	write_hbi8 (HBI_INDEXED_INDEX0_REG, address);
 	write_hbi8 (HBI_INDEXED_DATA0_REG, val);
 }
 
 /* ESC read CSR function */
-inline void ESC_read_csr (uint16_t address, void *buf, uint16_t len)
+void ESC_read_csr (uint16_t address, void *buf, uint16_t len)
 {
 	uint32_t value;
 
@@ -71,7 +67,7 @@ inline void ESC_read_csr (uint16_t address, void *buf, uint16_t len)
 }
 
 /* ESC write CSR function */
-inline void ESC_write_csr (uint16_t address, void *buf, uint16_t len)
+void ESC_write_csr (uint16_t address, void *buf, uint16_t len)
 {
 	uint32_t value;
 
@@ -87,7 +83,7 @@ inline void ESC_write_csr (uint16_t address, void *buf, uint16_t len)
 }
 
 /* ESC read process data ram function */
-inline void ESC_read_pram (uint16_t address, void *buf, uint16_t len)
+void ESC_read_pram (uint16_t address, void *buf, uint16_t len)
 {
 	uint32_t value;
 	uint8_t * temp_buf = buf;
@@ -146,7 +142,7 @@ inline void ESC_read_pram (uint16_t address, void *buf, uint16_t len)
 }
 
 /* ESC write process data ram function */
-inline void ESC_write_pram (uint16_t address, void *buf, uint16_t len)
+void ESC_write_pram (uint16_t address, void *buf, uint16_t len)
 {
 	uint32_t value;
 	uint8_t * temp_buf = buf;

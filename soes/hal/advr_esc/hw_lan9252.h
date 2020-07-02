@@ -67,13 +67,13 @@
 #define ESC_INT_EN_REG       	0x5C
 #define ESC_BYTE_TEST_REG      	0x64
 
-void lan9252_write_32 (uint16_t address, uint32_t val);
-uint32_t lan9252_read_32 (uint32_t address);
+void     lan9252_write_32 (uint16_t address, uint32_t val);
+uint32_t lan9252_read_32  (uint32_t address);
 
-void ESC_write_csr (uint16_t address, void *buf, uint16_t len);
-void ESC_read_csr (uint16_t address, void *buf, uint16_t len);
+void ESC_write_csr  (uint16_t address, void *buf, uint16_t len);
+void ESC_read_csr   (uint16_t address, void *buf, uint16_t len);
 void ESC_write_pram (uint16_t address, void *buf, uint16_t len);
-void ESC_read_pram (uint16_t address, void *buf, uint16_t len);
+void ESC_read_pram  (uint16_t address, void *buf, uint16_t len);
 
 #endif
 

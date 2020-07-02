@@ -11,11 +11,12 @@
  * registers and memory.
  */
 
-#include "hw_lan9252.h"
-
+#include <string.h>
 #include <soes/esc.h>
 
-#include <string.h>
+#include "hw_lan9252.h"
+
+
 
 static inline uint16_t check_addr_size(uint16_t address, uint16_t len) {
 
@@ -42,7 +43,8 @@ static inline uint16_t check_addr_size(uint16_t address, uint16_t len) {
  * @param[out]  buf         = pointer to buffer to read in
  * @param[in]   len         = number of bytes to read
  */
-#pragma CODE_SECTION(ESC_read,ramFuncSection);
+//#pragma CODE_SECTION(ESC_read,ramFuncSection);
+__attribute__((ramfunc))
 void ESC_read (uint16_t address, void *buf, uint16_t len)
 {
     uint8_t *temp_buf = (uint8_t *)buf;
@@ -71,7 +73,8 @@ void ESC_read (uint16_t address, void *buf, uint16_t len)
  * @param[out]  buf         = pointer to buffer to write from
  * @param[in]   len         = number of bytes to write
  */
-#pragma CODE_SECTION(ESC_write,ramFuncSection);
+//#pragma CODE_SECTION(ESC_write,ramFuncSection);
+__attribute__((ramfunc))
 void ESC_write (uint16_t address, void *buf, uint16_t len)
 {
 	uint8_t *temp_buf = (uint8_t *)buf;
