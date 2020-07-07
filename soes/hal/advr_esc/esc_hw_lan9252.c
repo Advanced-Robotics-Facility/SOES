@@ -44,7 +44,7 @@ static inline uint16_t check_addr_size(uint16_t address, uint16_t len) {
  * @param[in]   len         = number of bytes to read
  */
 //#pragma CODE_SECTION(ESC_read,ramFuncSection);
-__attribute__((ramfunc))
+//__attribute__((ramfunc))
 void ESC_read (uint16_t address, void *buf, uint16_t len)
 {
     uint8_t *temp_buf = (uint8_t *)buf;
@@ -74,7 +74,7 @@ void ESC_read (uint16_t address, void *buf, uint16_t len)
  * @param[in]   len         = number of bytes to write
  */
 //#pragma CODE_SECTION(ESC_write,ramFuncSection);
-__attribute__((ramfunc))
+//__attribute__((ramfunc))
 void ESC_write (uint16_t address, void *buf, uint16_t len)
 {
 	uint8_t *temp_buf = (uint8_t *)buf;
@@ -119,9 +119,9 @@ void ESC_init (const esc_cfg_t * config)
 	// set bit 2 : state of DC sync0
 	do {
 		value = 0x4;
-		ESC_write (ESCREG_ALEVENTMASK, &value, sizeof(value));
+		ESC_write (ESCREG_ALEVENTMASK, (void*)&value, sizeof(value));
 		value = 0;
-		ESC_read (ESCREG_ALEVENTMASK, &value, sizeof(value));
+		ESC_read (ESCREG_ALEVENTMASK, (void*)&value, sizeof(value));
 	} while ( value != 0x4);
 
 	//IRQ enable,IRQ polarity, IRQ buffer type in Interrupt Configuration register.
