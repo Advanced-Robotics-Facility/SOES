@@ -13,11 +13,19 @@
 
 #include <soes/esc.h>
 #include "hw_lan9252.h"
+#include "pins.h"
 
 #define LAN9252_BASE 0xC0000000
 
-#if HW_TYPE == TREE_MOTOR
-static inline void write_hbi (uint16_t addr, uint32_t val) {
+#if HW_TYPE == BLUE_BOARD
+#define write_hbi 	write_hbi_8
+#define  read_hbi  	 read_hbi_8
+#else
+#define write_hbi 	write_hbi_16
+#define  read_hbi  	 read_hbi_16
+#endif
+
+static inline void write_hbi_16 (uint16_t addr, uint32_t val) {
 
 	uint16_t * lan_addr = (uint16_t *)LAN9252_BASE + ( addr >> 1);
 	uint16_t * b = (uint16_t *)&val;
@@ -25,7 +33,7 @@ static inline void write_hbi (uint16_t addr, uint32_t val) {
 	*lan_addr++ = *b++;
 }
 
-static inline uint32_t read_hbi (uint16_t addr) {
+static inline uint32_t read_hbi_16 (uint16_t addr) {
 
 	volatile uint32_t data;
 	uint16_t * lan_addr = (uint16_t *)LAN9252_BASE + ( addr >> 1);
@@ -34,8 +42,8 @@ static inline uint32_t read_hbi (uint16_t addr) {
 	*b++ = *lan_addr++ ;
 	return data;
 }
-#else
-static inline void write_hbi (uint16_t addr, uint32_t val) {
+
+static inline void write_hbi_8 (uint16_t addr, uint32_t val) {
 
 	char * lan_addr = (char *)LAN9252_BASE + addr;
 	char * b = (char *)&val;
@@ -45,7 +53,7 @@ static inline void write_hbi (uint16_t addr, uint32_t val) {
 	*lan_addr++ = *b++;
 }
 
-static inline uint32_t read_hbi (uint16_t addr) {
+static inline uint32_t read_hbi_8 (uint16_t addr) {
 
 	volatile uint32_t data;
 	char * lan_addr = (char *)LAN9252_BASE + addr;
@@ -57,7 +65,6 @@ static inline uint32_t read_hbi (uint16_t addr) {
 	return data;
 }
 
-#endif
 
 uint32_t lan9252_read_32 (uint32_t address)
 {
