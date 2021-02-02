@@ -101,6 +101,14 @@ void ESC_write (uint16_t address, void *buf, uint16_t len)
  */
 void ESC_reset (void)
 {
+	uint32_t values[] = {0x52, 0x45, 0x53, 0x0}, *pval, ret;
+
+	pval = values;
+	do {
+		lan9252_write_32 (ESC_RESET_PDI_REG, *pval);
+		ret = lan9252_read_32 (ESC_RESET_PDI_REG);
+		DPRINT("%s reset_ecat_reg 0x%04X --> 0x%04X\n", __FUNCTION__, *pval, ret);
+	} while ( *(++pval) );
 
 }
 

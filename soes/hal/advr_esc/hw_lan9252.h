@@ -65,6 +65,7 @@
 #define ESC_IRQ_CFG_REG       	0x54
 #define ESC_INT_STS_REG       	0x58
 #define ESC_INT_EN_REG       	0x5C
+#define ESC_RESET_PDI_REG      	0x41
 #define ESC_BYTE_TEST_REG      	0x64
 
 void     lan9252_write_32 (uint16_t address, uint32_t val);

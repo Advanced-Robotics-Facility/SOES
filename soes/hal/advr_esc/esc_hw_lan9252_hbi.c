@@ -13,16 +13,17 @@
 
 #include <soes/esc.h>
 #include "hw_lan9252.h"
-#include "pins.h"
 
 #define LAN9252_BASE 0xC0000000
 
-#if HW_TYPE == BLUE_BOARD
+#if defined(HBI_8)
 #define write_hbi 	write_hbi_8
 #define  read_hbi  	 read_hbi_8
-#else
+#elif defined(HBI_16)
 #define write_hbi 	write_hbi_16
 #define  read_hbi  	 read_hbi_16
+#else
+	#error "Wrong HBI !!"
 #endif
 
 static inline void write_hbi_16 (uint16_t addr, uint32_t val) {
