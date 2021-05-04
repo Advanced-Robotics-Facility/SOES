@@ -100,9 +100,8 @@ void ESC_ALeventmaskwrite (uint32_t mask)
  */
 uint32_t ESC_ALeventmaskread (void)
 {
-   uint32_t aleventmask;
-
-   ESC_read (ESCREG_ALEVENTMASK, &aleventmask, sizeof(aleventmask));
+   volatile uint32_t aleventmask;
+   ESC_read (ESCREG_ALEVENTMASK, (void*)&aleventmask, sizeof(aleventmask));
    return htoel(aleventmask);
 }
 
@@ -112,9 +111,9 @@ uint32_t ESC_ALeventmaskread (void)
  */
 void ESC_ALeventwrite (uint32_t event)
 {
-   uint32_t alevent;
+   volatile uint32_t alevent;
    alevent = htoel(event);
-   ESC_write (ESCREG_ALEVENT, &alevent, sizeof(alevent));
+   ESC_write (ESCREG_ALEVENT, (void*)&alevent, sizeof(alevent));
 }
 
 /** Read Alevent register 0x220.
@@ -123,8 +122,8 @@ void ESC_ALeventwrite (uint32_t event)
  */
 uint32_t ESC_ALeventread (void)
 {
-   uint32_t alevent;
-   ESC_read (ESCREG_ALEVENT, &alevent, sizeof(alevent));
+   volatile uint32_t alevent;
+   ESC_read (ESCREG_ALEVENT, (void*)&alevent, sizeof(alevent));
    return htoel(alevent);
 }
 
@@ -135,8 +134,8 @@ uint32_t ESC_ALeventread (void)
  */
 void ESC_SMack (uint8_t n)
 {
-   uint8_t dummy;
-   ESC_read (ESCREG_SM0ACTIVATE + (n << 3), &dummy, 1);
+   volatile uint8_t dummy;
+   ESC_read (ESCREG_SM0ACTIVATE + (n << 3), (void*)&dummy, 1);
 }
 
 /** Read SM Status register 0x805(+ offset to SyncManager n) and save the
@@ -199,8 +198,8 @@ void ESC_address (void)
  */
 uint8_t ESC_WDstatus (void)
 {
-   uint16_t wdstatus;
-   ESC_read (ESCREG_WDSTATUS, &wdstatus, 2);
+   volatile uint16_t wdstatus;
+   ESC_read (ESCREG_WDSTATUS, (void*)&wdstatus, 2);
    wdstatus = etohs (wdstatus);
    return (uint8_t) wdstatus;
 }
@@ -211,8 +210,8 @@ uint8_t ESC_WDstatus (void)
  */
 uint8_t ESC_SYNCactivation (void)
 {
-   uint8_t activation;
-   ESC_read (ESCREG_SYNC_ACT, &activation, sizeof(activation));
+   volatile uint8_t activation;
+   ESC_read (ESCREG_SYNC_ACT, (void*)&activation, sizeof(activation));
    return activation;
 }
 
@@ -222,8 +221,8 @@ uint8_t ESC_SYNCactivation (void)
  */
 uint32_t ESC_SYNC0cycletime (void)
 {
-   uint32_t cycletime;
-   ESC_read (ESCREG_SYNC0_CYCLE_TIME, &cycletime, sizeof(cycletime));
+   volatile uint32_t cycletime;
+   ESC_read (ESCREG_SYNC0_CYCLE_TIME, (void*)&cycletime, sizeof(cycletime));
    cycletime = etohl (cycletime);
    return cycletime;
 }
@@ -234,8 +233,8 @@ uint32_t ESC_SYNC0cycletime (void)
  */
 uint32_t ESC_SYNC1cycletime (void)
 {
-   uint32_t cycletime;
-   ESC_read (ESCREG_SYNC1_CYCLE_TIME, &cycletime, 4);
+   volatile uint32_t cycletime;
+   ESC_read (ESCREG_SYNC1_CYCLE_TIME, (void*)&cycletime, 4);
    cycletime = etohl (cycletime);
    return cycletime;
 }
