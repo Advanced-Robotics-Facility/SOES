@@ -55,8 +55,12 @@ void ESC_read(uint16_t addr, void * data, uint16_t len) {
     uint8_t     i=0;
     
     cs_dn();
-    // address phase 
+    // address phase
+#ifdef STM32
+    addrPhase(addr, ESC_CMD_READWS);
+#else
     ESCvar.ALevent = addrPhase(addr, ESC_CMD_READWS);
+#endif
     spi_write(0xFF);
 
     // data phase
@@ -88,7 +92,11 @@ void ESC_write(uint16_t addr, void * data, uint16_t len) {
     
     cs_dn();
     // address phase
+#ifdef STM32
+    addrPhase(addr, ESC_CMD_WRITE);
+#else
     ESCvar.ALevent = addrPhase(addr, ESC_CMD_WRITE);
+#endif
 
     // data phase
     for ( i=0;i<len;i++ ) {
@@ -108,6 +116,12 @@ void ESC_reset (void)
 void ESC_init (const esc_cfg_t * config)
 {
 	uint32_t value;
+	uint8_t type;
+	uint8_t PDI_ctrl;
+
+	ESC_read (0x0000, &type, sizeof(type));
+	ESC_read (0x0140, &PDI_ctrl, sizeof(PDI_ctrl));
+	DPRINT ("%d 0x%02X\n",type, PDI_ctrl);
 
 	do {
 	   value = 0x4;
