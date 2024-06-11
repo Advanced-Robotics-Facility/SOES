@@ -204,12 +204,16 @@ void soes_init (esc_cfg_t * config)
  */
 void soes_loop() {
 
+	static uint16_t old_alevent;
     /* Read local time from ESC*/
     ESC_read (ESCREG_LOCALTIME, (void *) &ESCvar.Time, sizeof (ESCvar.Time));
     ESCvar.Time = etohl (ESCvar.Time);
-#ifdef STM32
-    ESCvar.ALevent = ESC_ALeventread();
-    //DPRINT("%s 0x%04X\n",__FUNCTION__,ESCvar.ALevent);
+#ifdef STM32F429xx
+    //ESCvar.ALevent = ESC_ALeventread();
+    if ( ESCvar.ALevent && old_alevent != ESCvar.ALevent) {
+    	old_alevent = ESCvar.ALevent;
+    	DPRINT("%s ESC_ALeventread 0x%04X\n",__FUNCTION__,ESCvar.ALevent);
+    }
 #endif
     /* Read DC cyclic activation reg */
     //ESC_read (ESCREG_DC_ACTIVATION, (void *) &ESCvar.DC_activation, sizeof (ESCvar.DC_activation));
