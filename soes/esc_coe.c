@@ -1725,7 +1725,7 @@ static void COE_setValue (const _objd * obj, uint64_t value)
    case DTYPE_UNSIGNED64:
    case DTYPE_INTEGER64:
       /* FIXME: must be atomic */
-      *(uint64_t *)obj->data = value;
+	  //*(uint64_t *)obj->data = value;
       break;
 
    default:
