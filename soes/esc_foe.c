@@ -14,6 +14,13 @@
 #include "esc_foe.h"
 #include <string.h>
 
+#ifdef ESC_DEBUG
+#ifndef FOE_DEBUG
+    #undef DPRINT
+    #define DPRINT(...)
+#endif
+#endif
+
  /** \file
  * \brief
  * File over EtherCAT (FoE) module.
@@ -54,6 +61,8 @@ static uint32_t FOE_fopen (char *name, uint8_t num_chars, uint32_t pass, uint8_t
 {
    uint32_t i;
 
+   DPRINT("%s %d 0x%04X\n", name, num_chars, pass);
+
    /* Unpack the file name into characters we can look at. */
    if (num_chars > FOE_FN_MAX)
    {
@@ -86,13 +95,23 @@ static uint32_t FOE_fopen (char *name, uint8_t num_chars, uint32_t pass, uint8_t
          foe_file = &foe_cfg->files[i];
          foe_file->address_offset = 0;
          foe_file->total_size = 0;
+
+         if ( foe_file->on_foe_open != 0 ) {
+        	 if ( foe_file->on_foe_open( op ) ) {
+        		 return FOE_ERR_PROGERROR;
+        	 }
+         }
+
          switch (op)
          {
             case FOE_OP_RRQ:
             {
-               FOEvar.fposition = 0;
-               FOEvar.fend = foe_cfg->files[i].max_data;
-               return 0;
+            	if ( foe_file->read_function == 0) {
+            		return FOE_ERR_ACCESS;
+            	}
+            	FOEvar.fposition = 0;
+            	FOEvar.fend = foe_cfg->files[i].max_data;
+            	return 0;
             }
             case FOE_OP_WRQ:
             {
@@ -122,11 +141,24 @@ static uint32_t FOE_fread (uint8_t * data, uint32_t maxlength)
 {
    uint32_t ncopied = 0;
 
+   DPRINT("%s %d %d %d %d\n", __FUNCTION__,
+		   maxlength, FOEvar.fend, FOEvar.fposition, FOEvar.fbufposition);
+   FOEvar.fprevposition = FOEvar.fposition;
    while (maxlength && (FOEvar.fend - FOEvar.fposition))
    {
-      maxlength--;
-      *(data++) = foe_cfg->fbuffer[FOEvar.fposition++];
-      ncopied++;
+       if( (foe_file->address_offset == 0) ||
+    	   (FOEvar.fbufposition >= foe_cfg->buffer_size) )
+       {
+          foe_file->read_function (foe_file, foe_cfg->fbuffer, FOEvar.fbufposition);
+          FOEvar.fbufposition = 0;
+          foe_file->address_offset += foe_cfg->buffer_size;
+       }
+
+       maxlength--;
+	   *(data++) = foe_cfg->fbuffer[FOEvar.fbufposition++];
+
+	   FOEvar.fposition++;
+	   ncopied++;
    }
 
    return ncopied;
@@ -149,7 +181,8 @@ static uint32_t FOE_fwrite (uint8_t *data, uint32_t length)
     uint32_t ncopied = 0;
     uint32_t failed = 0;
 
-    DPRINT("FOE_fwrite\n");
+    DPRINT("%s %d %d %d %d\n", __FUNCTION__,
+ 		   length, FOEvar.fend, FOEvar.fposition, FOEvar.fbufposition);
     FOEvar.fprevposition = FOEvar.fposition;
     while (length && (FOEvar.fend - FOEvar.fposition) && !failed)
     {
@@ -186,14 +219,26 @@ static uint32_t FOE_fwrite (uint8_t *data, uint32_t length)
  */
 static uint32_t FOE_fclose (void)
 {
+   uint32_t i;
    uint32_t failed = 0;
 
-   DPRINT("FOE_fclose\n");
-   
-   failed = foe_file->write_function (foe_file, foe_cfg->fbuffer, FOEvar.fbufposition);
-   foe_file->address_offset += FOEvar.fbufposition;
-   FOEvar.fbufposition = 0;
+   DPRINT("%s\n",__FUNCTION__);
+   if (FOEvar.fbufposition)
+   {
 
+      DPRINT("FOE_fclose EXTRA write\n");
+      for(i = FOEvar.fbufposition; i < foe_cfg->buffer_size; i++)
+      {
+         foe_cfg->fbuffer[FOEvar.fbufposition++] = 0xFF;
+      }
+      failed = foe_file->write_function (foe_file, foe_cfg->fbuffer, FOEvar.fbufposition);
+      FOEvar.fbufposition = 0;
+      foe_file->address_offset += foe_cfg->buffer_size;
+      DPRINT("FOE_fclose EXTRA write ended\n");
+   }
+   if ( failed == 0 && foe_file->on_foe_close != 0) {
+   	   foe_file->on_foe_close();
+   }
    return failed;
 }
 
@@ -578,6 +623,10 @@ void ESC_foeprocess (void)
       if (etohs (foembx->mbxheader.length) < ESC_FOEHSIZE)
       {
          FOE_abort (MBXERR_SIZETOOSHORT);
+      }
+      else if ((ESCvar.ALstatus != ESCboot) && (ESCvar.ALstatus != ESCpreop))
+      {
+         FOE_abort (FOE_ERR_NOTINBOOTSTRAP);
       }
       else
       {

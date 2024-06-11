@@ -100,9 +100,8 @@ void ESC_ALeventmaskwrite (uint32_t mask)
  */
 uint32_t ESC_ALeventmaskread (void)
 {
-   uint32_t aleventmask;
-
-   ESC_read (ESCREG_ALEVENTMASK, &aleventmask, sizeof(aleventmask));
+   volatile uint32_t aleventmask;
+   ESC_read (ESCREG_ALEVENTMASK, (void*)&aleventmask, sizeof(aleventmask));
    return htoel(aleventmask);
 }
 
@@ -112,9 +111,9 @@ uint32_t ESC_ALeventmaskread (void)
  */
 void ESC_ALeventwrite (uint32_t event)
 {
-   uint32_t alevent;
+   volatile uint32_t alevent;
    alevent = htoel(event);
-   ESC_write (ESCREG_ALEVENT, &alevent, sizeof(alevent));
+   ESC_write (ESCREG_ALEVENT, (void*)&alevent, sizeof(alevent));
 }
 
 /** Read Alevent register 0x220.
@@ -123,8 +122,8 @@ void ESC_ALeventwrite (uint32_t event)
  */
 uint32_t ESC_ALeventread (void)
 {
-   uint32_t alevent;
-   ESC_read (ESCREG_ALEVENT, &alevent, sizeof(alevent));
+   volatile uint32_t alevent;
+   ESC_read (ESCREG_ALEVENT, (void*)&alevent, sizeof(alevent));
    return htoel(alevent);
 }
 
@@ -220,8 +219,8 @@ void ESC_address (void)
  */
 uint8_t ESC_WDstatus (void)
 {
-   uint16_t wdstatus;
-   ESC_read (ESCREG_WDSTATUS, &wdstatus, 2);
+   volatile uint16_t wdstatus;
+   ESC_read (ESCREG_WDSTATUS, (void*)&wdstatus, 2);
    wdstatus = etohs (wdstatus);
    return (uint8_t) wdstatus;
 }
@@ -232,8 +231,8 @@ uint8_t ESC_WDstatus (void)
  */
 uint8_t ESC_SYNCactivation (void)
 {
-   uint8_t activation;
-   ESC_read (ESCREG_SYNC_ACT, &activation, sizeof(activation));
+   volatile uint8_t activation;
+   ESC_read (ESCREG_SYNC_ACT, (void*)&activation, sizeof(activation));
    return activation;
 }
 
@@ -243,8 +242,8 @@ uint8_t ESC_SYNCactivation (void)
  */
 uint32_t ESC_SYNC0cycletime (void)
 {
-   uint32_t cycletime;
-   ESC_read (ESCREG_SYNC0_CYCLE_TIME, &cycletime, sizeof(cycletime));
+   volatile uint32_t cycletime;
+   ESC_read (ESCREG_SYNC0_CYCLE_TIME, (void*)&cycletime, sizeof(cycletime));
    cycletime = etohl (cycletime);
    return cycletime;
 }
@@ -255,8 +254,8 @@ uint32_t ESC_SYNC0cycletime (void)
  */
 uint32_t ESC_SYNC1cycletime (void)
 {
-   uint32_t cycletime;
-   ESC_read (ESCREG_SYNC1_CYCLE_TIME, &cycletime, 4);
+   volatile uint32_t cycletime;
+   ESC_read (ESCREG_SYNC1_CYCLE_TIME, (void*)&cycletime, 4);
    cycletime = etohl (cycletime);
    return cycletime;
 }
@@ -304,13 +303,19 @@ uint16_t ESC_checkDC (void)
 uint8_t ESC_checkmbx (uint8_t state)
 {
    _ESCsm2 *SM;
+   DPRINT("%s ", __FUNCTION__);
    ESC_read (ESCREG_SM0, (void *) &ESCvar.SM[0], sizeof (ESCvar.SM[0]));
    ESC_read (ESCREG_SM1, (void *) &ESCvar.SM[1], sizeof (ESCvar.SM[1]));
    SM = (_ESCsm2 *) & ESCvar.SM[0];
    if ((etohs (SM->PSA) != ESC_MBX0_sma) || (etohs (SM->Length) != ESC_MBX0_sml)
        || (SM->Command != ESC_MBX0_smc) || (ESCvar.SM[0].ECsm == 0))
    {
-      ESCvar.SMtestresult = SMRESULT_ERRSM0;
+	  DPRINT("FAIL: 0x%04X 0x%04X|%d %d|0x%02X 0x%02X|%d == 0\n\r",
+			  etohs (SM->PSA), 		ESC_MBX0_sma,
+			  etohs (SM->Length),	ESC_MBX0_sml,
+			  SM->Command,			ESC_MBX0_smc,
+			  ESCvar.SM[0].ECsm);
+	  ESCvar.SMtestresult = SMRESULT_ERRSM0;
       ESC_SMdisable (0);
       ESC_SMdisable (1);
       return (uint8_t) (ESCinit | ESCerror);      //fail state change
@@ -324,6 +329,7 @@ uint8_t ESC_checkmbx (uint8_t state)
       ESC_SMdisable (1);
       return ESCinit | ESCerror;        //fail state change
    }
+   DPRINT("OK\n");
    return state;
 }
 /** Try to start mailboxes for current ALControl state request by enabling SyncManager 0 and 1.
@@ -552,6 +558,26 @@ void MBX_error (uint16_t error)
    }
 }
 
+/** Get mailbox type
+ */
+void ESC_mbxtype(uint8_t * mbxtype)
+{
+    _MBXh *mbh;
+
+    if ( ! ESCvar.MBXrun ) {
+        return;
+    }
+
+    if (!ESCvar.xoe && (MBXcontrol[0].state == MBXstate_inclaim))
+    {
+      mbh = (_MBXh *) &MBX[0];
+      *mbxtype = (uint8_t)mbh->mbxtype;
+    }
+
+    return;
+}
+
+
 /** Mailbox routine for implementing the low-level part of the mailbox protocol
  * used by Application Layers running on-top of mailboxes. It takes care of sending
  * a mailbox, re-sending a mailbox, reading a mailbox and handles a mailbox full event.
@@ -742,6 +768,11 @@ uint8_t ESC_checkSM23 (uint8_t state)
             ((SM->ActESC & ESCREG_SYNC_ACT_ACTIVATED) == 0) &&
             (ESCvar.ESC_SM2_sml > 0))
    {
+      DPRINT("%s: 0x%04X 0x%04X|%d %d|0x%02X 0x%02X|%d %d\n\r", __FUNCTION__,
+    		  etohs (SM->PSA), 		ESC_SM2_sma,
+			  etohs (SM->Length),	ESCvar.ESC_SM2_sml,
+			  SM->Command,			ESC_SM2_smc,
+			  SM->ActESC, 			ESC_SM2_act);
       ESCvar.SMtestresult = SMRESULT_ERRSM2;
       /* fail state change */
       return (ESCpreop | ESCerror);
@@ -785,7 +816,12 @@ uint8_t ESC_checkSM23 (uint8_t state)
             ((SM->ActESC & ESCREG_SYNC_ACT_ACTIVATED) == 0) &&
             (ESCvar.ESC_SM3_sml > 0))
    {
-      ESCvar.SMtestresult = SMRESULT_ERRSM3;
+	  DPRINT("%s: 0x%04X 0x%04X|%d %d|0x%02X 0x%02X|%d %d\n\r", __FUNCTION__,
+			  etohs (SM->PSA), 		ESC_SM3_sma,
+			  etohs (SM->Length),	ESCvar.ESC_SM3_sml,
+			  SM->Command,			ESC_SM3_smc,
+			  SM->ActESC, 			ESC_SM3_act);
+	  ESCvar.SMtestresult = SMRESULT_ERRSM3;
       /* fail state change */
       return (ESCpreop | ESCerror);
    }
@@ -1120,7 +1156,8 @@ void ESC_state (void)
    /* Error state not acked, leave original */
    if ((an & ESCerror) && ((ac & ESCerror) == 0))
    {
-      return;
+      DPRINT("%s: error not acked", __FUNCTION__);
+	  return;
    }
 
    /* Mask high bits ALcommand, low bits ALstatus */
