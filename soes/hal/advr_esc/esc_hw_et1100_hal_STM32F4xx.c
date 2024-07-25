@@ -17,6 +17,13 @@ extern SPI_HandleTypeDef hspi4;
 static uint8_t read_termination[MAX_READ_SIZE] = {0};
 static uint8_t ws_byte = 0xFF;
 
+static uint32_t alevent_spi_vec[256] = {0};
+static uint32_t alevent_reg_vec[256] = {0};
+static uint8_t 	alevent_idx = 0;
+
+static HAL_StatusTypeDef errorcode = HAL_OK;
+static uint32_t trx_timeout = 100;
+
 void cs_up(void) { HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET); }
 void cs_dn(void) { HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET); }
 
@@ -32,11 +39,12 @@ inline static uint32_t al_ev_Reg(void) {
 	/* address 4:0 and cmd 2:0 */
 	addr_data[1] = ((addr & 0x1F) << 3) | ESC_CMD_READWS;
 	// address phase
-	HAL_SPI_TransmitReceive(&hspi4, addr_data, (void*)&dummy, 2, 100);
+	errorcode = HAL_SPI_TransmitReceive(&hspi4, addr_data, (void*)&dummy, 2, trx_timeout);
 	// wait state
-	HAL_SPI_Transmit(&hspi4, (void*)&ws_byte, 1, 100);
+	errorcode = HAL_SPI_Transmit(&hspi4, (void*)&ws_byte, 1, trx_timeout);
 	// data
-	HAL_SPI_TransmitReceive(&hspi4, read_termination + (MAX_READ_SIZE - sizeof(alevent)), (void*)&alevent, sizeof(alevent), 100);
+	errorcode = HAL_SPI_TransmitReceive(&hspi4, read_termination + (MAX_READ_SIZE - sizeof(alevent)), (void*)&alevent, sizeof(alevent), trx_timeout);
+
 	cs_up();
 
 	return htoel(alevent);
@@ -48,9 +56,9 @@ inline static uint32_t al_ev_Reg(void) {
  */
 inline static uint16_t addrPhase(uint16_t addr, uint8_t cmd) {
 
-    uint16_t al_event;
-    uint8_t data[3];
-    uint8_t al_event_reg[3];
+    uint16_t	al_event = 0;
+    uint8_t		data[3] = {0};
+    uint8_t		al_event_reg[3] = {0};
 
     if ( addr > 0xFFF ) {
         /* address 12:5 */
@@ -60,7 +68,10 @@ inline static uint16_t addrPhase(uint16_t addr, uint8_t cmd) {
     	/* address 15:13 and cmd1 2:0 */
     	data[2] = ((addr >> 8) & 0xE0) | (cmd << 2);
     	/* Write (and read AL interrupt register) */
-    	HAL_SPI_TransmitReceive(&hspi4, data, al_event_reg, 3, 100);
+    	errorcode = HAL_SPI_TransmitReceive(&hspi4, data, al_event_reg, 3, trx_timeout);
+    	if ( errorcode != HAL_OK ) {
+    		goto error;
+    	}
 
     } else {
         /* address 12:5 */
@@ -68,12 +79,18 @@ inline static uint16_t addrPhase(uint16_t addr, uint8_t cmd) {
     	/* address 4:0 and cmd 2:0 */
     	data[1] = ((addr & 0x1F) << 3) | cmd;
     	/* Write (and read AL interrupt register) */
-    	HAL_SPI_TransmitReceive(&hspi4, data, al_event_reg, 2, 100);
+    	errorcode = HAL_SPI_TransmitReceive(&hspi4, data, al_event_reg, 2, trx_timeout);
+    	if ( errorcode != HAL_OK ) {
+    		goto error;
+    	}
 
     }
 
     al_event = al_event_reg[0];
     al_event |= al_event_reg[1] << 8;
+
+error:
+	// goto jump al_event assignment
 
     return htoes(al_event);
 
@@ -84,7 +101,7 @@ void ESC_read(uint16_t addr, void * data, uint16_t len) {
 	cs_dn();
 	// Write address and command to device
 	//ESCvar.ALevent = addrPhase(addr, ESC_CMD_READWS);
-	addrPhase(addr, ESC_CMD_READWS);
+	alevent_spi_vec[alevent_idx] = addrPhase(addr, ESC_CMD_READWS);
 	/* Between the last address phase byte and the first data byte of a read access, the SPI master has to
        wait for the SPI slave to fetch the read data internally. Subsequent read data bytes are prefetched
        automatically, so no further wait states are necessary.
@@ -95,18 +112,29 @@ void ESC_read(uint16_t addr, void * data, uint16_t len) {
 			byte must have a value of 0xFF transferred on SPI_DI.
 			spi_write(0xFF);
 	*/
-    HAL_SPI_Transmit(&hspi4, &ws_byte, 1, 100);
+    HAL_SPI_Transmit(&hspi4, &ws_byte, 1, trx_timeout);
 
     /* Here we want to read data and keep MOSI low (0x00) during
 	 * all bytes except the last one where we want to pull it high (0xFF).
 	 * Read (and write termination bytes).
 	 */
-    HAL_SPI_TransmitReceive(&hspi4, read_termination + (MAX_READ_SIZE - len), data, len, 100);
+    HAL_SPI_TransmitReceive(&hspi4, read_termination + (MAX_READ_SIZE - len), data, len, trx_timeout);
 
     cs_up();
 
     ESCvar.ALevent = al_ev_Reg();
 
+#if 0
+    alevent_reg_vec[alevent_idx] = ESCvar.ALevent;
+    alevent_idx++;
+    if ( alevent_idx >= 10 ) {
+    	while (alevent_idx--) {
+    		DPRINT ("%d 0x%" PRIX32 " 0x%" PRIX32 "\n",
+    				alevent_idx, alevent_spi_vec[alevent_idx], alevent_reg_vec[alevent_idx]);
+    	}
+    	DPRINT ("\n");
+    }
+#endif
     return;
 }
 
