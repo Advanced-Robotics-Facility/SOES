@@ -54,22 +54,32 @@ inline void lan9252_write_32 (uint16_t address, uint32_t val)
     cs_up();
 }
 
+#define FAST_READ
 /* lan9252 single read */
 inline uint32_t lan9252_read_32 (uint32_t address)
 {
+#ifdef FAST_READ
 	uint8_t data[4];
-	//uint8_t data[3];
+#else
+	uint8_t data[3];
+#endif
 	uint8_t result[4];
 
-   //data[0] = ESC_CMD_SERIAL_READ;
+#ifdef FAST_READ
    data[0] = ESC_CMD_FAST_READ;
+#else
+   data[0] = ESC_CMD_SERIAL_READ;
+#endif
    data[1] = ((address >> 8) & 0xFF);
    data[2] = (address & 0xFF);
+#ifdef FAST_READ
    data[3] = ESC_CMD_FAST_READ_DUMMY;
+#endif
 
    /* Select device. */
    cs_dn();
    /* Read data */
+   //spiWriteRead(&data, sizeof(data), &result, sizeof(result));
    write (data, sizeof(data));
    read (result, sizeof(result));
    /* Un-select device. */
