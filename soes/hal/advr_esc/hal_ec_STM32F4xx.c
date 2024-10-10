@@ -18,7 +18,6 @@ inline uint8_t spi_write(uint8_t data) {
 	uint8_t rx_data;
 	HAL_StatusTypeDef ret;
 	ret = HAL_SPI_TransmitReceive(&ecat_spi, &data, &rx_data, 1, SPI_DFLT_TIMEOUT);
-	//while( hspi3.State == HAL_SPI_STATE_BUSY );
 	if ( ret != HAL_OK ) {
 		DPRINT("%s errcode %d",__FUNCTION__,ret);
 	}
@@ -28,7 +27,7 @@ inline uint8_t spi_write(uint8_t data) {
 #else
 
 inline uint8_t spi_write(uint8_t data) {
-	// must be enabled in MX_SPI3_Init with __HAL_SPI_ENABLE(&hspi3);
+	// must be enabled in MX_SPIx_Init with __HAL_SPI_ENABLE(&hspix);
 	ecat_spi.Instance->DR = data;
 	while ( ! __HAL_SPI_GET_FLAG(&ecat_spi, SPI_FLAG_RXNE) );
 	return ecat_spi.Instance->DR;
