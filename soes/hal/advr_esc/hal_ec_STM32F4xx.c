@@ -27,7 +27,12 @@ inline uint8_t spi_write(uint8_t data) {
 #else
 
 inline uint8_t spi_write(uint8_t data) {
-	// must be enabled in MX_SPIx_Init with __HAL_SPI_ENABLE(&hspix);
+	static uint8_t spi_enabled;
+	// must be enabled with __HAL_SPI_ENABLE(&hspix);
+	if ( ! spi_enabled ) {
+		__HAL_SPI_ENABLE(&ecat_spi);
+		spi_enabled = 1;
+	}
 	ecat_spi.Instance->DR = data;
 	while ( ! __HAL_SPI_GET_FLAG(&ecat_spi, SPI_FLAG_RXNE) );
 	return ecat_spi.Instance->DR;
