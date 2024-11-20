@@ -370,6 +370,8 @@ void ecat_slv_init (esc_cfg_t * config)
    }
 
 #if USE_FOE
+   /* Pre FoE to set up Application information */
+   bootstrap_foe_init ();
    /* Init FoE */
    FOE_init ();
 #endif

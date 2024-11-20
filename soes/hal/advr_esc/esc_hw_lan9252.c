@@ -43,7 +43,8 @@ static inline uint16_t check_addr_size(uint16_t address, uint16_t len) {
  * @param[in]   len         = number of bytes to read
  */
 //#pragma CODE_SECTION(ESC_read,ramFuncSection);
-__attribute__((ramfunc))
+//__attribute__((ramfunc))
+__attribute__((section(".RamFunc")))
 void ESC_read (uint16_t address, void *buf, uint16_t len)
 {
     uint8_t *temp_buf = (uint8_t *)buf;
@@ -73,7 +74,8 @@ void ESC_read (uint16_t address, void *buf, uint16_t len)
  * @param[in]   len         = number of bytes to write
  */
 //#pragma CODE_SECTION(ESC_write,ramFuncSection);
-__attribute__((ramfunc))
+//__attribute__((ramfunc))
+__attribute__((section(".RamFunc")))
 void ESC_write (uint16_t address, void *buf, uint16_t len)
 {
 	uint8_t *temp_buf = (uint8_t *)buf;
