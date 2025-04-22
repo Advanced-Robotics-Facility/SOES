@@ -30,6 +30,8 @@ extern "C"
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #endif
 
+#define CC_RAMFUNC   __attribute__((section(".TI.ramfunc")))
+
 #define CC_PACKED_BEGIN
 #define CC_PACKED_END
 #define CC_PACKED       __attribute__((packed))
@@ -69,15 +71,15 @@ extern "C"
 #endif
 
 #ifdef ESC_DEBUG
-#ifdef __rtk__
-#include <kern/rprint.h>
-#define DPRINT(...) rprintp ("soes: "__VA_ARGS__)
+    #ifdef __rtk__
+        #include <kern/rprint.h>
+        #define DPRINT(...) rprintp ("soes: "__VA_ARGS__)
+    #else
+        #include <stdio.h>
+        #define DPRINT(fmt, ...) printf("soes: " fmt, ##__VA_ARGS__)
+    #endif
 #else
-#include <stdio.h>
-#define DPRINT(fmt, ...) printf("soes: " fmt, ##__VA_ARGS__)
-#endif
-#else
-#define DPRINT(...)
+    #define DPRINT(...)
 #endif
 
 #ifdef __cplusplus

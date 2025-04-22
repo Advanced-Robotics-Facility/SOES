@@ -708,7 +708,7 @@ typedef struct
 #define ESC_EOEHSIZE        ((uint32_t)sizeof(_EOEh))
 #define ESC_EOE_DATA_SIZE   (ESC_MBXSIZE - (ESC_MBXHSIZE +ESC_EOEHSIZE))
 
-void ESC_config (esc_cfg_t * cfg);
+void ESC_config (const esc_cfg_t * cfg);
 void ESC_ALerror (uint16_t errornumber);
 void ESC_ALeventwrite (uint32_t event);
 uint32_t ESC_ALeventread (void);

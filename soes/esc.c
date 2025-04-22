@@ -1367,7 +1367,7 @@ void ESC_state (void)
  * @param[in] cfg   = Pointer to the Application configuration variable
  * holding application specific details. Data is copied.
  */
-void ESC_config (esc_cfg_t * cfg)
+void ESC_config (const esc_cfg_t * cfg)
 {
    static sm_cfg_t mb0 = {MBX0_sma, MBX0_sml, MBX0_sme, MBX0_smc, 0};
    static sm_cfg_t mb1 = {MBX1_sma, MBX1_sml, MBX1_sme, MBX1_smc, 0};

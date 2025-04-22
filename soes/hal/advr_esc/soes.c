@@ -162,7 +162,7 @@ void RXPDO_update (void)
 
 /** Initializing the stack software
  */
-void soes_init (esc_cfg_t * config)
+void soes_init (const esc_cfg_t * config)
 {
 	DPRINT ("Slave stack init started\n");
     /* Call stack configuration */
