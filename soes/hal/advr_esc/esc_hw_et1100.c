@@ -14,6 +14,12 @@ static uint32_t alevent_spi_vec[256] = {0};
 static uint32_t alevent_reg_vec[256] = {0};
 static uint8_t 	alevent_idx = 0;
 
+/* Forward declaration  */
+extern void assert_EE_LOAD(void) __attribute__((weak, alias("no_assert_EE_LOAD")));
+
+static void no_assert_EE_LOAD(void) {
+	DPRINT ("EE_LOAD pin NOT checked !!\n");
+}
 
 inline static uint32_t ESC_Read_ALEVENT(void) {
 
@@ -163,9 +169,12 @@ void ESC_init (const esc_cfg_t * config)
 	uint8_t type;
 	uint8_t PDI_ctrl;
 
+	// busy wait for EEPROM_LOAD pin if present
+	assert_EE_LOAD();
+
 	ESC_read (0x0000, &type, sizeof(type));
 	ESC_read (0x0140, &PDI_ctrl, sizeof(PDI_ctrl));
-	DPRINT ("%d 0x%02X\n",type, PDI_ctrl);
+	DPRINT ("0x%02X 0x%02X\n",type, PDI_ctrl);
 
 	do {
 	   value = 0x4;
