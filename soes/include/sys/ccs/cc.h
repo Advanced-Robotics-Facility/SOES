@@ -38,7 +38,7 @@ extern "C"
 #define CC_ALIGNED(n)   __attribute__((aligned (n)))
 
 #define CC_ASSERT(exp) assert (exp)
-#define CC_STATIC_ASSERT(exp) _Static_assert (exp, "")
+#define CC_STATIC_ASSERT(exp, msg) _Static_assert (exp, msg)
 
 #define CC_DEPRECATED   __attribute__((deprecated))
 
