@@ -12,6 +12,8 @@
 #define IS_RXPDO(index) ((index) >= 0x1600 && (index) < 0x1800)
 #define IS_TXPDO(index) ((index) >= 0x1A00 && (index) < 0x1C00)
 
+extern void bootstrap_foe_init(void);
+
 /* Global variables used by the stack */
 uint8_t     MBX[MBXBUFFERS * MAX(MBXSIZE,MBXSIZEBOOT)];
 _MBXcontrol MBXcontrol[MBXBUFFERS];
